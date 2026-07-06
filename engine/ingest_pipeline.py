@@ -124,12 +124,17 @@ for row in active:
     select_cols = list(row["select_columns"] or [])
     props = _props(row)
 
-    if row["source_format"] in ("delta", "cloudfiles"):
+    # The engine registers bronze ONLY when it owns the landing: cloudfiles with
+    # a path, or delta snapshot from an explicit raw_table. Otherwise bronze is
+    # external (managed Lakeflow Connect pipeline, or a pre-existing table) and
+    # the engine only consumes it.
+    owns_bronze = (row["source_format"] == "cloudfiles" and src_details.get("path")) or (
+        row["source_format"] == "delta" and src_details.get("raw_table")
+    )
+    if owns_bronze:
         register_bronze(
             tgt["bronze_table"], row["source_format"], src_details, select_cols, cluster_by, props
         )
-    # sfdc_rest / managed-connector sources: bronze is landed by the Lakeflow
-    # Connect ingestion pipeline; the engine only consumes it.
 
     register_silver(
         tgt["silver_table"],
