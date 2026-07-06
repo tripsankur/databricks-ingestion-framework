@@ -22,7 +22,14 @@ import json
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# serverless spark_python_task exec()s the file without __file__; argv[0] is the
+# script path there, so sibling modules stay importable in both contexts
+try:
+    _ENGINE_DIR = os.path.dirname(os.path.abspath(__file__))
+except NameError:
+    _ENGINE_DIR = os.path.dirname(os.path.abspath(sys.argv[0])) if sys.argv else ""
+if _ENGINE_DIR and _ENGINE_DIR not in sys.path:
+    sys.path.append(_ENGINE_DIR)
 
 from pyspark.sql import SparkSession
 

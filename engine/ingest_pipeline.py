@@ -20,24 +20,31 @@ that disappear from the graph.
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
 from pyspark import pipelines as dp
 from pyspark.sql import SparkSession
-
-from spec_reader import (
-    ENGINE_VERSION,
-    load_rows,
-    parse_dq,
-    parse_keys,
-    parse_transforms,
-)
 
 spark = SparkSession.getActiveSession()
 
 SOURCE = spark.conf.get("pf.source")
 SPEC_TABLE = spark.conf.get("pf.spec_table")
 ENV = spark.conf.get("pf.env", "dev")
+
+# SDP executes source files without __file__; the provisioner passes the deployed
+# engine directory via pf.engine_dir so sibling modules stay importable.
+try:
+    _ENGINE_DIR = os.path.dirname(os.path.abspath(__file__))
+except NameError:
+    _ENGINE_DIR = spark.conf.get("pf.engine_dir", "")
+if _ENGINE_DIR and _ENGINE_DIR not in sys.path:
+    sys.path.append(_ENGINE_DIR)
+
+from spec_reader import (  # noqa: E402
+    ENGINE_VERSION,
+    load_rows,
+    parse_dq,
+    parse_keys,
+    parse_transforms,
+)
 
 
 def _props(row):
