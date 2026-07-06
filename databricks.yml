@@ -1,0 +1,96 @@
+# Ingestion Framework — static engine bundle. Deployed ONCE per workspace;
+# per-source pipelines/workflows are created by Pipeline Factory against the
+# deployed engine files (ADR-008/009). This bundle registers NO per-source assets.
+bundle:
+  name: ingestion-framework
+
+resources:
+  jobs:
+    framework_recon:
+      name: "pf-framework-recon"
+      description: "Generic key/row/attribute reconciliation driven by ctl.dataflow_spec metadata"
+      tags:
+        generated_by: pipeline_factory_infra
+        pf_framework: "true"
+      parameters:
+        - name: source
+          default: ""
+        - name: entity
+          default: ""
+        - name: spec_table
+          default: "workspace.ctl.dataflow_spec"
+        - name: recon_id
+          default: ""
+        - name: run_id
+          default: ""
+        - name: catalog
+          default: "workspace"
+        - name: schema
+          default: "ctl"
+      tasks:
+        - task_key: recon
+          spark_python_task:
+            python_file: ./engine/recon_job.py
+            parameters:
+              - "--source"
+              - "{{job.parameters.source}}"
+              - "--entity"
+              - "{{job.parameters.entity}}"
+              - "--spec-table"
+              - "{{job.parameters.spec_table}}"
+              - "--recon-id"
+              - "{{job.parameters.recon_id}}"
+              - "--run-id"
+              - "{{job.parameters.run_id}}"
+              - "--catalog"
+              - "{{job.parameters.catalog}}"
+              - "--schema"
+              - "{{job.parameters.schema}}"
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            client: "2"
+
+    framework_sfdc_describe:
+      name: "pf-framework-sfdc-describe"
+      description: "Salesforce schema discovery fallback (describe-only, secret-scope creds) — NOT ingestion"
+      tags:
+        generated_by: pipeline_factory_infra
+        pf_framework: "true"
+      parameters:
+        - name: secret_scope
+          default: "pipeline_factory"
+        - name: conn
+          default: "sfdc_sample"
+        - name: objects_json
+          default: "[]"
+      tasks:
+        - task_key: describe
+          spark_python_task:
+            python_file: ./adapters/sfdc_describe.py
+            parameters:
+              - "--secret-scope"
+              - "{{job.parameters.secret_scope}}"
+              - "--conn"
+              - "{{job.parameters.conn}}"
+              - "--objects-json"
+              - "{{job.parameters.objects_json}}"
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            client: "2"
+
+targets:
+  dev:
+    default: true
+    mode: development
+    workspace:
+      host: https://dbc-5ff279f3-09b2.cloud.databricks.com
+
+  prod:
+    mode: production
+    workspace:
+      host: https://dbc-5ff279f3-09b2.cloud.databricks.com
+      root_path: /Workspace/ingestion-framework/prod
