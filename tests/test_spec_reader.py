@@ -85,3 +85,17 @@ def test_compare_disabled_column_excluded():
         parse_transforms(json.dumps([_t(compare={"enabled": False}), _t(name="b", target="tb")]))
     )
     assert [c for c, _ in out] == ["tb"]
+
+
+def test_engine_version_matches_version_file():
+    from spec_reader import ENGINE_VERSION
+    v = (Path(__file__).resolve().parents[1] / "VERSION").read_text().strip()
+    assert v == ENGINE_VERSION
+
+
+def test_run_logger_lit_escaping():
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "engine"))
+    from run_logger import lit
+    assert lit(None) == "NULL"
+    assert lit("o'brien") == "'o''brien'"
+    assert lit(42) == "'42'"

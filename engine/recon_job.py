@@ -145,11 +145,20 @@ def main():
     p.add_argument("--source", required=True)
     p.add_argument("--entity", default="")
     p.add_argument("--spec-table", required=True)
-    p.add_argument("--recon-id", required=True)
-    p.add_argument("--run-id", required=True)
+    # optional since 1.1.0 (ADR-011): as a scheduled workflow task there is no app
+    # to mint ids — recon_id self-generates; run_id defaults to the job run id
+    # passed via {{job.run_id}} so it joins ingestion_runs
+    p.add_argument("--recon-id", default="")
+    p.add_argument("--run-id", default="")
     p.add_argument("--catalog", default="workspace")
     p.add_argument("--schema", default="ctl")
     args = p.parse_args()
+    if not args.recon_id:
+        import uuid
+
+        args.recon_id = str(uuid.uuid4())
+    if not args.run_id:
+        args.run_id = args.recon_id
 
     spark = SparkSession.builder.getOrCreate()
     ctl = f"`{args.catalog}`.`{args.schema}`"
