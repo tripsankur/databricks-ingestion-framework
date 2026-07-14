@@ -81,6 +81,20 @@ def register_bronze(name, fmt, src, select_cols, cluster_by, props):
     return bronze
 
 
+def register_crosswalk(name, bronze_fqn, keys, props):
+    """Identity crosswalk (engine-owned MV): distinct source keys from bronze.
+    Registered only when no external crosswalk table exists — a fresh source
+    owns its crosswalk from the first run; a real source->target mapping table
+    can replace it later (external tables always win over registration)."""
+
+    @dp.materialized_view(name=name, table_properties=props)
+    def crosswalk():
+        cols = [f"`{k['source']}`" for k in keys]
+        return spark.read.table(bronze_fqn).select(*cols).distinct()
+
+    return crosswalk
+
+
 def register_silver(name, bronze_fqn, transforms, crosswalk_table, keys, dq, cluster_by, props):
     """Silver stitch: transformed source columns + inner crosswalk join, with
     data-quality expectations from metadata applied on target column names."""
@@ -135,6 +149,18 @@ for row in active:
         register_bronze(
             tgt["bronze_table"], row["source_format"], src_details, select_cols, cluster_by, props
         )
+
+    # crosswalk: use an existing external mapping table when present; otherwise
+    # the engine registers an identity crosswalk MV so fresh sources work day one
+    xw_fqn = tgt.get("crosswalk_table")
+    if xw_fqn and keys:
+        try:
+            xw_exists = spark.catalog.tableExists(xw_fqn)
+        except Exception:
+            xw_exists = False
+        if not xw_exists:
+            register_crosswalk(xw_fqn, tgt["bronze_table"], keys, props)
+            print(f"crosswalk {xw_fqn}: absent -> engine-owned identity MV registered")
 
     register_silver(
         tgt["silver_table"],

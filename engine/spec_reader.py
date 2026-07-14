@@ -8,7 +8,7 @@ tombstone semantics stay in one place.
 
 import json
 
-ENGINE_VERSION = "1.2.1"
+ENGINE_VERSION = "1.2.2"
 
 
 def semver_tuple(v):
