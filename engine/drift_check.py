@@ -111,8 +111,11 @@ def main():
         selected = list(row["select_columns"] or [])
         obj = src.get("source_object")
         conn = src.get("connection") or f"{args.source}_sample"
-        if fmt != "lakeflow_connect" or not obj:
-            continue  # only SaaS describe implemented today
+        # describe-capable = any row that names a SaaS source_object — sfdc runs
+        # P3-style today (engine-owned bronze, source_format=delta) yet still
+        # drifts at the source; formats with no source_object can't be described
+        if not obj or fmt not in ("lakeflow_connect", "delta"):
+            continue
         try:
             live = sfdc_describe_fields(args.secret_scope, conn, obj, dbutils)
         except Exception as e:
