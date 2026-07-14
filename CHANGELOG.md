@@ -8,3 +8,7 @@
   watermarks (ctl.watermarks) — runs as a workflow task on every execution (ADR-011).
 - recon_job.py: --recon-id/--run-id now optional (self-generated / {{job.run_id}})
   so recon rides the scheduled workflow.
+
+## 1.2.0 (2026-07-14)
+- drift_check.py: pre-ingest schema-drift detection vs contract selection
+  (ctl.drift_events; policy from batch_config.drift_policy: warn|fail|pass).

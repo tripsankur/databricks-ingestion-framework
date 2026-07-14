@@ -99,3 +99,12 @@ def test_run_logger_lit_escaping():
     assert lit(None) == "NULL"
     assert lit("o'brien") == "'o''brien'"
     assert lit(42) == "'42'"
+
+
+def test_drift_diff_columns():
+    from drift_check import diff_columns
+    missing, added = diff_columns(["Id", "Name", "Gone"], ["Id", "Name", "NewCol", "Other"])
+    assert missing == ["Gone"]
+    assert added == ["NewCol", "Other"]
+    m2, a2 = diff_columns(["Id"], ["Id"])
+    assert m2 == [] and a2 == []
