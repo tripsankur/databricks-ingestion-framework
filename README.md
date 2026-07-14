@@ -18,6 +18,12 @@ Per-source assets (ingestion pipeline `brnz_{source}_ingest`, ETL pipeline
 `slvr_{source}_etl`, workflow `{source}_workflow`) are provisioned by the app
 against the deployed engine path — this bundle intentionally registers none.
 
+## Patterns
+
+The prescriptive catalog (which bronze pattern per source type, workflow shapes,
+per-pattern metadata requirements) lives in the app repo:
+[pipeline-factory/docs/FRAMEWORK_PATTERNS.md](https://github.com/tripsankur/pipeline-factory/blob/main/docs/FRAMEWORK_PATTERNS.md).
+
 ## Metadata contract
 
 `{catalog}.ctl.dataflow_spec` — one row per entity: `dataflow_id`, `dataflow_group`
