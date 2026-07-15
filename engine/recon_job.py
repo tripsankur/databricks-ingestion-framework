@@ -7,7 +7,7 @@ this file IS executed as a script, and the attribute comparison below is the
 result, not an aspiration.
 
 Reads its per-entity config from {spec_table} (dataflow_spec metadata), compares
-bronze (post-ingestion source) against the silver target through the crosswalk,
+bronze (post-ingestion source) against the silver target on the business key,
 and writes rates + bounded record diffs to the ctl recon tables.
 
   --source      dataflow_group (e.g. sfdc)
@@ -42,8 +42,7 @@ def recon_entity(spark, ctl, row, recon_id):
     tgt = dict(row["target_details"] or {})
     src_tbl = tgt["bronze_table"]
     tgt_tbl = tgt["silver_table"]
-    xw_tbl = tgt.get("crosswalk_table")
-    keys = parse_keys(row["crosswalk_keys"])
+    keys = parse_keys(row["primary_keys"])
     transforms = parse_transforms(row["column_transforms"])
     entity = row["entity"]
 
@@ -55,7 +54,6 @@ def recon_entity(spark, ctl, row, recon_id):
 
     join_sql = (
         f"FROM {src_tbl} src "
-        + (f"INNER JOIN {xw_tbl} xw ON src.`{src_key}` = xw.`{src_key}` " if xw_tbl else "")
         + f"INNER JOIN {tgt_tbl} tgt ON tgt.`{tgt_key}` = src.`{src_key}`"
     )
 

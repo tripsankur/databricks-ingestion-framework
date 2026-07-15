@@ -8,7 +8,7 @@ tombstone semantics stay in one place.
 
 import json
 
-ENGINE_VERSION = "1.2.3"
+ENGINE_VERSION = "1.3.0"
 
 
 def semver_tuple(v):
@@ -59,9 +59,9 @@ def parse_dq(dq_json):
     }
 
 
-def parse_keys(crosswalk_keys_json):
-    """crosswalk_keys JSON -> list of {source, target}."""
-    return json.loads(crosswalk_keys_json or "[]")
+def parse_keys(primary_keys_json):
+    """primary_keys JSON -> list of {source, target} (the entity business key)."""
+    return json.loads(primary_keys_json or "[]")
 
 
 def build_compare_exprs(transforms):
