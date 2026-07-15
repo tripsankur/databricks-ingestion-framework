@@ -53,17 +53,31 @@ def sfdc_describe_fields(scope, conn, obj, dbutils):
         return dbutils.secrets.get(scope=scope, key=f"sfdc_{conn}_{suffix}")
 
     login_host = secret("login_host") or "login.salesforce.com"
+    stored_refresh = secret("refresh_token")
     body = urllib.parse.urlencode(
         {
             "grant_type": "refresh_token",
             "client_id": secret("client_id"),
             "client_secret": secret("client_secret"),
-            "refresh_token": secret("refresh_token"),
+            "refresh_token": stored_refresh,
         }
     ).encode()
     req = urllib.request.Request(f"https://{login_host}/services/oauth2/token", data=body, method="POST")
     with urllib.request.urlopen(req) as r:
         tok = json.loads(r.read().decode())
+    # CRITICAL: orgs may rotate the refresh token on EVERY grant. Persist the
+    # rotated value or the next consumer dies with invalid_grant (the runner
+    # SP needs WRITE on the scope). dbutils.secrets cannot write — use the SDK.
+    if tok.get("refresh_token") and tok["refresh_token"] != stored_refresh:
+        try:
+            from databricks.sdk import WorkspaceClient
+
+            WorkspaceClient().secrets.put_secret(
+                scope=scope, key=f"sfdc_{conn}_refresh_token", string_value=tok["refresh_token"]
+            )
+            print("rotated refresh token written back to the scope")
+        except Exception as e:  # degrade loudly — the NEXT run will hit invalid_grant
+            print(f"WARNING: rotated token write-back failed ({str(e)[:150]}) — re-auth will be needed")
     instance = tok.get("instance_url") or secret("instance_url")
     req2 = urllib.request.Request(
         f"{instance}/services/data/v60.0/sobjects/{obj}/describe",
